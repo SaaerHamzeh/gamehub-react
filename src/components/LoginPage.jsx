@@ -3,16 +3,21 @@ import { useApp } from '../context/AppContext';
 
 const LoginPage = () => {
   const { login } = useApp();
-  const [pin, setPin] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = login(pin);
+    setLoading(true);
+    const success = await login(username, password);
+    setLoading(false);
+    
     if (!success) {
       setError(true);
-      setPin('');
-      setTimeout(() => setError(false), 2000);
+      setPassword('');
+      setTimeout(() => setError(false), 3000);
     }
   };
 
@@ -30,20 +35,30 @@ const LoginPage = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <input
-                type="password"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
-                className={`w-full px-5 py-4 rounded-xl border-2 focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition text-center text-2xl tracking-[0.5em] dark:bg-gray-700 bg-gray-50 dark:text-white text-gray-900 ${error ? 'border-red-500 animate-pulse' : 'dark:border-gray-600 border-gray-300'}`}
-                placeholder="••••"
+                className="w-full px-5 py-4 mb-4 rounded-xl border-2 focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition text-center text-lg dark:bg-gray-700 bg-gray-50 dark:text-white text-gray-900 border-gray-300 dark:border-gray-600"
+                placeholder="Username (e.g. siraj)"
               />
-              {error && <p className="text-red-400 text-sm text-center mt-2">Invalid PIN. Try "admin" or "1234"</p>}
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className={`w-full px-5 py-4 rounded-xl border-2 focus:ring-4 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition text-center text-xl tracking-[0.2em] dark:bg-gray-700 bg-gray-50 dark:text-white text-gray-900 ${error ? 'border-red-500 animate-pulse' : 'dark:border-gray-600 border-gray-300'}`}
+                placeholder="Password"
+              />
+              {error && <p className="text-red-400 text-sm text-center mt-2">Invalid credentials. Try again.</p>}
             </div>
             <button
               type="submit"
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-bold text-lg flex items-center justify-center gap-2 hover:shadow-lg transition transform active:scale-95"
+              disabled={loading}
+              className={`w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-bold text-lg flex items-center justify-center gap-2 hover:shadow-lg transition transform active:scale-95 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              <i className="fas fa-unlock-alt"></i> UNLOCK SYSTEM
+              <i className={loading ? "fas fa-spinner fa-spin" : "fas fa-unlock-alt"}></i> 
+              {loading ? "AUTHENTICATING..." : "UNLOCK SYSTEM"}
             </button>
           </form>
         </div>

@@ -1,39 +1,55 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getActiveDurationMs, playAlertSound } from '../utils/helpers';
+import axios from 'axios';
+import { playAlertSound } from '../utils/helpers';
 
 const AppContext = createContext(null);
 export const useApp = () => useContext(AppContext);
 
+// Setup Axios
+axios.defaults.baseURL = 'http://127.0.0.1:8000/api';
+
 export const AppProvider = ({ children }) => {
-  const [sessions, setSessions] = useState(() => {
-    const s = localStorage.getItem('gamehub_sessions');
-    return s ? JSON.parse(s) : [];
-  });
-  const [devices, setDevices] = useState(() => {
-    const s = localStorage.getItem('gamehub_devices');
-    return s ? JSON.parse(s) : [];
-  });
-  const [cafeItems, setCafeItems] = useState(() => {
-    const s = localStorage.getItem('gamehub_cafe_items');
-    return s ? JSON.parse(s) : [];
-  });
+  const [sessions, setSessions] = useState([]);
+  const [devices, setDevices] = useState([]);
+  const [cafeItems, setCafeItems] = useState([]);
+  
   const [darkMode, setDarkMode] = useState(() => {
     const s = localStorage.getItem('darkMode');
     return s !== null ? JSON.parse(s) : true;
   });
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    sessionStorage.getItem('gamehub_auth') === 'true'
-  );
+  
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [hasCompletedSetup, setHasCompletedSetup] = useState(
     localStorage.getItem('gamehub_setup_complete') === 'true'
   );
 
-  // Persist
+  // Initialize Auth from Token
   useEffect(() => {
-    localStorage.setItem('gamehub_sessions', JSON.stringify(sessions));
-    localStorage.setItem('gamehub_devices', JSON.stringify(devices));
-    localStorage.setItem('gamehub_cafe_items', JSON.stringify(cafeItems));
-  }, [sessions, devices, cafeItems]);
+    const token = localStorage.getItem('gamehub_token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Token ${token}`;
+      setIsAuthenticated(true);
+      fetchData();
+    }
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [devRes, cafeRes, sessRes] = await Promise.all([
+        axios.get('/settings/devices/'),
+        axios.get('/settings/cafe-items/'),
+        axios.get('/sessions/')
+      ]);
+      // Normalize Devices: Backend uses id as primary key (db_id conceptually), map prefix+count? 
+      // Wait, backend ResourceConfig has 'id', 'name', 'prefix', 'count'. Perfect match for frontend.
+      setDevices(devRes.data);
+      setCafeItems(cafeRes.data);
+      setSessions(sessRes.data);
+    } catch (e) {
+      console.error("Failed to fetch data", e);
+      if (e.response?.status === 401) logout();
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
@@ -43,18 +59,26 @@ export const AppProvider = ({ children }) => {
 
   const toggleDarkMode = () => setDarkMode(prev => !prev);
 
-  const login = (pin) => {
-    if (pin === 'admin' || pin === '1234') {
+  const login = async (username, password) => {
+    try {
+      const res = await axios.post('/auth/login/', { username, password });
+      const token = res.data.token;
+      localStorage.setItem('gamehub_token', token);
+      axios.defaults.headers.common['Authorization'] = `Token ${token}`;
       setIsAuthenticated(true);
-      sessionStorage.setItem('gamehub_auth', 'true');
+      await fetchData();
       return true;
+    } catch (e) {
+      console.error("Login failed", e);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
     setIsAuthenticated(false);
-    sessionStorage.removeItem('gamehub_auth');
+    localStorage.removeItem('gamehub_token');
+    delete axios.defaults.headers.common['Authorization'];
+    setSessions([]);
   };
 
   const resetSetup = () => {
@@ -71,131 +95,96 @@ export const AppProvider = ({ children }) => {
     return sessions.some(s => !s.endTime && s.stationId === stationId);
   }, [sessions]);
 
-  const addSession = (sessionData) => {
-    const startTime = new Date();
-    let plannedEndTime = null;
-    if (sessionData.sessionType === 'PRE' && sessionData.durationHours > 0) {
-      plannedEndTime = new Date(startTime.getTime() + sessionData.durationHours * 3600000);
+  const addSession = async (sessionData) => {
+    try {
+      // sessionData from UI: { name, sessionType, durationHours, stationId, deviceType, pricePerHour }
+      const res = await axios.post('/sessions/', sessionData);
+      setSessions(prev => [res.data, ...prev]);
+    } catch (e) {
+      alert("Error starting session: " + JSON.stringify(e.response?.data));
     }
-    const newSession = {
-      id: Date.now() + Math.random() * 1000,
-      ...sessionData,
-      startTime: startTime.toISOString(),
-      plannedEndTime: plannedEndTime ? plannedEndTime.toISOString() : null,
-      endTime: null,
-      durationMinutes: null,
-      totalCost: null,
-      orders: [],
-      ordersCost: 0,
-      isPaused: false,
-      lastPauseTime: null,
-      totalPausedMs: 0,
-      alerted10min: false,
-    };
-    setSessions(prev => [...prev, newSession]);
   };
 
-  const endSession = (sessionId, discount = 0) => {
-    const now = new Date();
-    setSessions(prev => prev.map(session => {
-      if (session.id !== sessionId || session.endTime) return session;
-      const activeMs = getActiveDurationMs(session, now);
-      const durationHours = activeMs / (1000 * 3600);
-      const rawCost = (durationHours * session.pricePerHour) + (session.ordersCost || 0);
-      let updated = { ...session };
-      if (updated.isPaused) {
-        updated.isPaused = false;
-        updated.totalPausedMs = (updated.totalPausedMs || 0) + (now - new Date(updated.lastPauseTime));
-      }
-      return {
-        ...updated,
-        endTime: now.toISOString(),
-        durationMinutes: Math.round((activeMs / 60000) * 100) / 100,
-        totalCost: Math.max(0, parseFloat((rawCost - discount).toFixed(2))),
-        discount,
-      };
-    }));
+  const endSession = async (sessionId, discount = 0) => {
+    try {
+      const res = await axios.post(`/sessions/${sessionId}/end/`, { discount });
+      // Update local state smoothly
+      setSessions(prev => prev.map(s => s.id === sessionId ? res.data : s));
+    } catch (e) {
+       alert("Error ending session");
+    }
   };
 
-  const deleteSession = (sessionId) => {
+  const deleteSession = async (sessionId) => {
     if (window.confirm("Delete this session permanently?")) {
-      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      try {
+        await axios.delete(`/sessions/${sessionId}/`);
+        setSessions(prev => prev.filter(s => s.id !== sessionId));
+      } catch (e) {
+        alert("Error deleting session");
+      }
     }
   };
 
-  const togglePauseSession = (sessionId) => {
-    const now = new Date();
-    setSessions(prev => prev.map(session => {
-      if (session.id !== sessionId || session.endTime) return session;
-      if (session.isPaused) {
-        const delta = now - new Date(session.lastPauseTime);
-        return {
-          ...session,
-          isPaused: false,
-          totalPausedMs: (session.totalPausedMs || 0) + delta,
-          plannedEndTime: session.plannedEndTime
-            ? new Date(new Date(session.plannedEndTime).getTime() + delta).toISOString()
-            : null,
-        };
-      }
-      return { ...session, isPaused: true, lastPauseTime: now.toISOString() };
-    }));
+  const togglePauseSession = async (sessionId) => {
+    try {
+      const res = await axios.post(`/sessions/${sessionId}/pause/`);
+      setSessions(prev => prev.map(s => s.id === sessionId ? res.data : s));
+    } catch (e) {
+      alert("Error pausing/resuming session");
+    }
   };
 
-  const addOrderToSession = (sessionId, itemName, itemPrice) => {
-    setSessions(prev => prev.map(session => {
-      if (session.id !== sessionId || session.endTime) return session;
-      const orders = [...(session.orders || []), { name: itemName, price: itemPrice, time: new Date().toISOString() }];
-      return { ...session, orders, ordersCost: (session.ordersCost || 0) + itemPrice };
-    }));
+  const addOrderToSession = async (sessionId, itemName, itemPrice) => {
+    try {
+      const res = await axios.post(`/sessions/${sessionId}/add_order/`, { name: itemName, price: itemPrice });
+      setSessions(prev => prev.map(s => s.id === sessionId ? res.data : s));
+    } catch (e) {
+      alert("Error adding order");
+    }
   };
 
-  const checkAutoEnd = useCallback(() => {
-    const now = new Date();
-    setSessions(prev => {
-      let changed = false;
-      const updated = prev.map(session => {
-        if (!session.endTime && session.plannedEndTime && !session.isPaused) {
-          const plannedEnd = new Date(session.plannedEndTime);
-          if (now >= plannedEnd) {
-            const activeMs = getActiveDurationMs(session, now);
-            const rawCost = ((activeMs / (1000 * 3600)) * session.pricePerHour) + (session.ordersCost || 0);
-            changed = true;
-            return {
-              ...session,
-              endTime: now.toISOString(),
-              durationMinutes: Math.round((activeMs / 60000) * 100) / 100,
-              totalCost: parseFloat(rawCost.toFixed(2)),
-            };
-          }
-          const remainingMs = plannedEnd - now;
-          if (remainingMs > 0 && remainingMs <= 600000 && !session.alerted10min) {
-            playAlertSound();
-            changed = true;
-            return { ...session, alerted10min: true };
-          }
-        }
-        return session;
+  const checkAutoEnd = useCallback(async () => {
+    // We can just rely on get_queryset to do auto_end, so polling GET /sessions/ forces verification
+    try {
+       if (isAuthenticated) {
+          const res = await axios.get('/sessions/');
+          // Replace locally
+          setSessions(res.data);
+       }
+    } catch (e) {}
+  }, [isAuthenticated]);
+
+  // Optionally set interval to check auto end
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(checkAutoEnd, 30000); // Check every 30s
+    return () => clearInterval(interval);
+  }, [isAuthenticated, checkAutoEnd]);
+
+
+  const saveSettings = async (newDevices, newCafeItems) => {
+    try {
+      await axios.post('/settings/bulk-sync/', {
+        devices: newDevices,
+        cafe_items: newCafeItems
       });
-      return changed ? updated : prev;
-    });
-  }, []);
-
-  const saveSettings = (newDevices, newCafeItems) => {
-    setDevices(newDevices);
-    setCafeItems(newCafeItems);
+      await fetchData();
+    } catch (e) {
+      alert("Error saving settings");
+    }
   };
 
   const exportDailyReport = () => {
     const todayStr = new Date().toDateString();
     const todaysCompleted = sessions.filter(s => s.endTime && new Date(s.endTime).toDateString() === todayStr);
     if (todaysCompleted.length === 0) { alert("No completed sessions today."); return; }
-    const headers = ["Session ID", "Customer", "Device", "Station", "Start", "End", "Duration", "Earnings"];
+    const headers = ["Session ID", "Customer", "Station", "Start", "End", "Duration", "Earnings"];
     const rows = todaysCompleted.map(s => [
-      s.id, s.name, s.deviceType, s.stationId,
+      s.id, s.name, s.resourceId || s.stationId,
       new Date(s.startTime).toLocaleTimeString(),
       new Date(s.endTime).toLocaleTimeString(),
-      `${Math.floor(s.durationMinutes / 60)}h ${Math.floor(s.durationMinutes % 60)}m`,
+      `${Math.floor((s.durationMinutes || 0) / 60)}h ${Math.floor((s.durationMinutes || 0) % 60)}m`,
       `$${s.totalCost}`,
     ]);
     const csvContent = [headers, ...rows].map(row => row.join(",")).join("\n");
