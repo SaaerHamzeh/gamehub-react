@@ -1,16 +1,39 @@
-# React + Vite
+# GameHub - Premium Gaming Center UI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend component of the GameHub Mini-ERP system. It features a modern, responsive dashboard built with React and Tailwind CSS, now fully integrated with a server-authoritative Django backend.
 
-Currently, two official plugins are available:
+## Key Enhancements
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Backend Integration**: Completely swapped `localStorage` for a live Django API using `axios`.
+- **Enhanced Security**: Implemented a secure Login system using Username/Password with DRF Token Authentication.
+- **Real-Time Accuracy**: All session calculations (costs, durations) are now driven by server-side logic, ensuring 100% financial integrity.
+- **Bulk Sync**: Retains the user-friendly "Save All" settings flow while persisting data to a remote database.
 
-## React Compiler
+## Installation
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. **Clone the repository**:
+   ```bash
+   git clone <your-repo-url>
+   cd gamehub-react
+   ```
 
-## Expanding the ESLint configuration
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+3. **Configure API Endpoint**:
+   Ensure `axios.defaults.baseURL` in `src/context/AppContext.jsx` points to your running Django server (default: `http://127.0.0.1:8000/api`).
+
+4. **Run the development server**:
+   ```bash
+   npm run dev
+   ```
+
+## Development
+
+- **Stack**: React, Vite, Tailwind CSS, Axios.
+- **Context API**: Centralized state management for sessions, devices, and authentication.
+
+---
+Part of the GameHub ERP Suite.
