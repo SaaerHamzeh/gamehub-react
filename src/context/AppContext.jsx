@@ -8,6 +8,33 @@ export const useApp = () => useContext(AppContext);
 // Setup Axios
 axios.defaults.baseURL = 'http://127.0.0.1:8000/api';
 
+const normalizeSession = (session) => ({
+  ...session,
+  startTime: session.startTime || session.start_time || null,
+  endTime: session.endTime || session.end_time || null,
+  stationId: session.stationId || session.station_id || session.resource_code || session.resourceId || null,
+  resourceId: session.resourceId || session.resource_id || session.stationId || session.station_id || null,
+  sessionType: session.sessionType || session.session_type || null,
+  deviceType: session.deviceType || session.device_type || null,
+  pricePerHour: session.pricePerHour ?? session.price_per_hour ?? 0,
+  fixedPrice: session.fixedPrice ?? session.fixed_price ?? 0,
+  totalCost: session.totalCost ?? session.total_cost ?? 0,
+  ordersCost: session.ordersCost ?? session.orders_cost ?? 0,
+  durationMinutes: session.durationMinutes ?? session.duration_minutes ?? 0,
+  plannedEndTime: session.plannedEndTime || session.planned_end_time || null,
+  isPaused: session.isPaused ?? session.is_paused ?? false,
+  lastPauseTime: session.lastPauseTime || session.last_pause_time || null,
+});
+
+const normalizeCafeItem = (item) => ({
+  id: item.id,
+  name: item.name,
+  category: item.category_name || item.category_code || item.category || '',
+  price: parseFloat(item.sale_price ?? item.price ?? 0),
+  cost_price: parseFloat(item.cost_price) || 0,
+  stock: item.quantity_in_stock ?? item.stock ?? 0,
+});
+
 export const AppProvider = ({ children }) => {
   const [sessions, setSessions] = useState([]);
   const [devices, setDevices] = useState([]);
@@ -104,16 +131,9 @@ export const AppProvider = ({ children }) => {
         setAuditLogs(logsRes.data);
       } catch (e) { }
 
-      const mappedCafe = itemRes.data.map(item => ({
-        id: item.id,
-        name: item.name,
-        category: item.category_name,
-        price: parseFloat(item.sale_price),
-        cost_price: parseFloat(item.cost_price) || 0,
-        stock: item.quantity_in_stock || 0
-      }));
+      const mappedCafe = itemRes.data.map(normalizeCafeItem);
       setCafeItems(mappedCafe);
-      setSessions(sessRes.data);
+      setSessions(sessRes.data.map(normalizeSession));
     } catch (e) {
       console.error("Failed to fetch data", e);
       if (e.response?.status === 401) logout();
@@ -236,7 +256,7 @@ export const AppProvider = ({ children }) => {
         branchId: branchId
       };
       const res = await axios.post('/sessions/', dataToSend);
-      setSessions(prev => [res.data, ...prev]);
+      setSessions(prev => [normalizeSession(res.data), ...prev]);
     } catch (e) {
       alert("Error starting session: " + JSON.stringify(e.response?.data));
     }
@@ -246,7 +266,7 @@ export const AppProvider = ({ children }) => {
     try {
       const res = await axios.post(`/sessions/${sessionId}/end/`, { discount });
       // Update local state smoothly
-      setSessions(prev => prev.map(s => s.id === sessionId ? res.data : s));
+      setSessions(prev => prev.map(s => s.id === sessionId ? normalizeSession(res.data) : s));
     } catch (e) {
       alert("Error ending session");
     }
@@ -266,7 +286,7 @@ export const AppProvider = ({ children }) => {
   const togglePauseSession = async (sessionId) => {
     try {
       const res = await axios.post(`/sessions/${sessionId}/pause/`);
-      setSessions(prev => prev.map(s => s.id === sessionId ? res.data : s));
+      setSessions(prev => prev.map(s => s.id === sessionId ? normalizeSession(res.data) : s));
     } catch (e) {
       alert("Error pausing/resuming session");
     }
@@ -280,17 +300,10 @@ export const AppProvider = ({ children }) => {
         price,
         quantity,
       });
-      setSessions(prev => prev.map(s => s.id === sessionId ? res.data : s));
+      setSessions(prev => prev.map(s => s.id === sessionId ? normalizeSession(res.data) : s));
       // Refresh inventory items to reflect stock change
       const itemRes = await axios.get('/inventory-items/');
-      const mappedCafe = itemRes.data.map(item => ({
-        id: item.id,
-        name: item.name,
-        category: item.category_code,
-        price: parseFloat(item.sale_price),
-        cost_price: parseFloat(item.cost_price) || 0,
-        stock: item.quantity_in_stock || 0
-      }));
+      const mappedCafe = itemRes.data.map(normalizeCafeItem);
       setCafeItems(mappedCafe);
     } catch (e) {
       alert("Error adding order: " + (e.response?.data?.error || ""));
@@ -300,17 +313,10 @@ export const AppProvider = ({ children }) => {
   const removeOrderFromSession = async (sessionId, orderId) => {
     try {
       const res = await axios.post(`/sessions/${sessionId}/remove_order/`, { orderId });
-      setSessions(prev => prev.map(s => s.id === sessionId ? res.data : s));
+      setSessions(prev => prev.map(s => s.id === sessionId ? normalizeSession(res.data) : s));
       // Refresh inventory items to reflect stock change
       const itemRes = await axios.get('/inventory-items/');
-      const mappedCafe = itemRes.data.map(item => ({
-        id: item.id,
-        name: item.name,
-        category: item.category_code,
-        price: parseFloat(item.sale_price),
-        cost_price: parseFloat(item.cost_price) || 0,
-        stock: item.quantity_in_stock || 0
-      }));
+      const mappedCafe = itemRes.data.map(normalizeCafeItem);
       setCafeItems(mappedCafe);
     } catch (e) {
       alert("Error removing order: " + (e.response?.data?.error || ""));
@@ -322,7 +328,7 @@ export const AppProvider = ({ children }) => {
     try {
       if (isAuthenticated) {
         const res = await axios.get('/sessions/');
-        setSessions(res.data);
+        setSessions(res.data.map(normalizeSession));
         try {
           const anRes = await axios.get('/analytics/');
           setAnalytics(anRes.data);
