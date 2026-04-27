@@ -3,9 +3,17 @@ import { useApp } from '../context/AppContext';
 import { getActiveDurationMs, getLiveCost, formatRemaining, formatOrderSummary } from '../utils/helpers';
 
 const ActiveSessionCard = ({ session }) => {
-  const { darkMode, togglePauseSession, endSession } = useApp();
+  const { darkMode, togglePauseSession, endSession, removeOrderFromSession, permissions } = useApp();
   const [display, setDisplay] = useState({ timer: '00:00:00', cost: 0, pulsing: false });
+
+  const canManage = permissions?.manage_sessions;
   const intervalRef = useRef(null);
+
+  const handleRemoveOrder = (orderId, itemName) => {
+    if (window.confirm(`Permanently remove ${itemName} order and restore stock?`)) {
+      removeOrderFromSession(session.id, orderId);
+    }
+  };
 
   useEffect(() => {
     const update = () => {
@@ -87,10 +95,23 @@ const ActiveSessionCard = ({ session }) => {
               </span>
             </div>
             {session.orders && session.orders.length > 0 && (
-              <div className="mt-2 text-[10px] leading-tight dark:text-gray-400 text-gray-500">
-                <i className="fas fa-coffee mr-1 text-amber-500/70"></i>
-                {formatOrderSummary(session.orders)}{' '}
-                <span className="text-amber-500 font-bold whitespace-nowrap">(${session.ordersCost.toFixed(2)})</span>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {session.orders.map(order => (
+                  <div key={order.id} className="group relative flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[10px] dark:text-amber-200 text-amber-700 animate-fade-in">
+                    <i className="fas fa-coffee opacity-60"></i>
+                    <span className="font-medium whitespace-nowrap">{order.quantity > 1 ? `${order.quantity}x ` : ""}{order.item_name}</span>
+                    <span className="opacity-60">${parseFloat(order.total_price).toFixed(2)}</span>
+                    {canManage && (
+                      <button 
+                        onClick={() => handleRemoveOrder(order.id, order.item_name)}
+                        className="ml-1 text-red-500 hover:text-red-700 transition-colors"
+                        title="Remove Order"
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -105,19 +126,26 @@ const ActiveSessionCard = ({ session }) => {
             {display.timer}
           </p>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => togglePauseSession(session.id)}
-              className={`w-10 h-10 rounded-lg ${session.isPaused ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-500 hover:bg-yellow-600'} text-white transition flex items-center justify-center shadow-md`}
-              title={session.isPaused ? 'Resume' : 'Pause'}
-            >
-              <i className={`fas ${session.isPaused ? 'fa-play' : 'fa-pause'}`}></i>
-            </button>
-            <button
-              onClick={handleEnd}
-              className="px-4 py-2 h-10 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition flex items-center justify-center gap-2 shadow-md"
-            >
-              <i className="fas fa-power-off"></i> End Session
-            </button>
+            {canManage && (
+              <>
+                <button
+                  onClick={() => togglePauseSession(session.id)}
+                  className={`w-10 h-10 rounded-lg ${session.isPaused ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-500 hover:bg-yellow-600'} text-white transition flex items-center justify-center shadow-md`}
+                  title={session.isPaused ? 'Resume' : 'Pause'}
+                >
+                  <i className={`fas ${session.isPaused ? 'fa-play' : 'fa-pause'}`}></i>
+                </button>
+                <button
+                  onClick={handleEnd}
+                  className="px-4 py-2 h-10 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition flex items-center justify-center gap-2 shadow-md"
+                >
+                  <i className="fas fa-power-off"></i> End Session
+                </button>
+              </>
+            )}
+            {!canManage && (
+              <span className="text-xs text-gray-400 italic">View Only</span>
+            )}
           </div>
         </div>
       </div>

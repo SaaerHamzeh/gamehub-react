@@ -6,13 +6,13 @@ const STEP_CAFE = 1;
 const STEP_DONE = 2;
 
 const defaultDevices = [
-  { id: 'PC', name: '🖥️ Gaming PC', prefix: 'PC-', count: 4 },
-  { id: 'PS', name: '🎮 PlayStation', prefix: 'PS-', count: 2 },
+  { id: 'PC', name: '🖥️ Gaming PC', prefix: 'PC-', count: 4, pricing_strategy: 'HOURLY', base_price: 3.00 },
+  { id: 'PS', name: '🎮 PlayStation', prefix: 'PS-', count: 2, pricing_strategy: 'HOURLY', base_price: 5.00 },
 ];
 const defaultCafe = [
-  { name: '☕ Coffee', price: 1.50 },
-  { name: '🥤 Soda', price: 1.00 },
-  { name: '🍕 Pizza Slice', price: 2.50 },
+  { name: '☕ Coffee', price: 1.50, cost_price: 0.50, stock: 100 },
+  { name: '🥤 Soda', price: 1.00, cost_price: 0.30, stock: 100 },
+  { name: '🍕 Pizza Slice', price: 2.50, cost_price: 1.00, stock: 50 },
 ];
 
 // ─── Reusable small components ───────────────────────────────────────────────
@@ -52,7 +52,7 @@ const DeviceStep = ({ devices, setDevices, onNext }) => {
     let newId = 'NEW';
     let c = 1;
     while (devices.some(d => d.id === newId)) { newId = `NEW${c}`; c++; }
-    setDevices(prev => [...prev, { id: newId, name: '🎮 New Device', prefix: 'ND-', count: 1 }]);
+    setDevices(prev => [...prev, { id: newId, name: '🎮 New Device', prefix: 'ND-', count: 1, pricing_strategy: 'HOURLY', base_price: 5.00 }]);
   };
 
   const update = (index, field, value) =>
@@ -99,8 +99,8 @@ const DeviceStep = ({ devices, setDevices, onNext }) => {
                   className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 bg-white dark:border-gray-600 border-gray-300 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+            <div className="grid grid-cols-3 gap-3 mb-3">
+              <div className="col-span-2">
                 <label className="block text-[11px] font-semibold dark:text-gray-400 text-gray-500 mb-1">Station Prefix</label>
                 <input value={d.prefix} onChange={e => update(i, 'prefix', e.target.value)}
                   placeholder="e.g. PS-"
@@ -108,15 +108,31 @@ const DeviceStep = ({ devices, setDevices, onNext }) => {
               </div>
               <div>
                 <label className="block text-[11px] font-semibold dark:text-gray-400 text-gray-500 mb-1">Count</label>
-                <div className="flex items-center gap-2">
-                  <input type="number" min="1" value={d.count}
+                <input type="number" min="1" value={d.count}
                     onChange={e => update(i, 'count', parseInt(e.target.value) || 1)}
                     className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 bg-white dark:border-gray-600 border-gray-300 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50" />
-                  <button onClick={() => remove(i)}
-                    className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition">
-                    <i className="fas fa-trash text-sm"></i>
-                  </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <label className="block text-[11px] font-semibold dark:text-gray-400 text-gray-500 mb-1">Pricing Strategy</label>
+                <select value={d.pricing_strategy} onChange={e => update(i, 'pricing_strategy', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 bg-white dark:border-gray-600 border-gray-300 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50">
+                  <option value="HOURLY">Hourly Rate</option>
+                  <option value="FIXED">Fixed Price</option>
+                  <option value="PER_GAME">Per Game</option>
+                </select>
+              </div>
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="block text-[11px] font-semibold dark:text-gray-400 text-gray-500 mb-1">Base Price ($)</label>
+                  <input type="number" step="0.5" min="0" value={d.base_price} onChange={e => update(i, 'base_price', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 bg-white dark:border-gray-600 border-gray-300 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/50" />
                 </div>
+                <button onClick={() => remove(i)}
+                  className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition">
+                  <i className="fas fa-trash text-sm"></i>
+                </button>
               </div>
             </div>
           </div>
@@ -139,7 +155,7 @@ const DeviceStep = ({ devices, setDevices, onNext }) => {
 // ─── Step 1: Cafe / Services ─────────────────────────────────────────────────
 
 const CafeStep = ({ cafeItems, setCafeItems, onNext, onBack }) => {
-  const add = () => setCafeItems(prev => [...prev, { name: '', price: 1.00 }]);
+  const add = () => setCafeItems(prev => [...prev, { name: '', price: 1.00, cost_price: 0.50, stock: 50 }]);
   const update = (i, field, val) =>
     setCafeItems(prev => prev.map((c, idx) => idx === i ? { ...c, [field]: val } : c));
   const remove = (i) => setCafeItems(prev => prev.filter((_, idx) => idx !== i));
@@ -164,20 +180,25 @@ const CafeStep = ({ cafeItems, setCafeItems, onNext, onBack }) => {
 
       <div className="space-y-3 max-h-[320px] overflow-y-auto custom-scrollbar pr-1">
         {cafeItems.map((c, i) => (
-          <div key={i} className="flex gap-3 items-center rounded-xl border dark:border-gray-600 border-gray-200 dark:bg-gray-700/40 bg-gray-50 p-3">
+          <div key={i} className="flex gap-2 items-center rounded-xl border dark:border-gray-600 border-gray-200 dark:bg-gray-700/40 bg-gray-50 p-3">
             <input value={c.name} onChange={e => update(i, 'name', e.target.value)}
-              placeholder="Item name (e.g. ☕ Coffee)"
-              className="flex-1 px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 bg-white dark:border-gray-600 border-gray-300 dark:text-white outline-none focus:ring-2 focus:ring-amber-500/50" />
-            <div className="flex items-center gap-1 shrink-0">
-              <span className="text-sm dark:text-gray-400 text-gray-500">$</span>
-              <input type="number" step="0.25" min="0" value={c.price}
-                onChange={e => update(i, 'price', parseFloat(e.target.value) || 0)}
-                className="w-20 px-3 py-2 rounded-lg border text-sm dark:bg-gray-800 bg-white dark:border-gray-600 border-gray-300 dark:text-white outline-none focus:ring-2 focus:ring-amber-500/50" />
+              placeholder="Name (e.g. ☕ Coffee)"
+              className="w-1/3 px-2 py-2 rounded-lg border text-sm dark:bg-gray-800 bg-white dark:border-gray-600 border-gray-300 dark:text-white outline-none focus:ring-2 focus:ring-amber-500/50" />
+            <input type="number" step="0.25" min="0" value={c.price} placeholder="Sale $"
+              onChange={e => update(i, 'price', parseFloat(e.target.value) || 0)}
+              className="w-1/6 px-2 py-2 rounded-lg border text-[11px] font-bold text-amber-600 dark:bg-gray-800 bg-white dark:border-gray-600 border-gray-300 dark:text-white outline-none focus:ring-2 focus:ring-amber-500/50" title="Sale Price" />
+            <input type="number" step="0.25" min="0" value={c.cost_price} placeholder="Cost $"
+              onChange={e => update(i, 'cost_price', parseFloat(e.target.value) || 0)}
+              className="w-1/6 px-2 py-2 rounded-lg border text-[11px] text-gray-500 dark:bg-gray-800 bg-white dark:border-gray-600 border-gray-300 dark:text-white outline-none focus:ring-2 focus:ring-amber-500/50" title="Cost Price" />
+            <input type="number" step="1" min="0" value={c.stock} placeholder="Stock"
+              onChange={e => update(i, 'stock', parseInt(e.target.value) || 0)}
+              className="w-1/6 px-2 py-2 rounded-lg border text-[11px] font-mono dark:bg-gray-800 bg-white dark:border-gray-600 border-gray-300 dark:text-white outline-none focus:ring-2 focus:ring-amber-500/50" title="Stock Quantity" />
+            <div className="w-1/6 flex justify-end">
+              <button onClick={() => remove(i)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition">
+                <i className="fas fa-trash text-xs"></i>
+              </button>
             </div>
-            <button onClick={() => remove(i)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition">
-              <i className="fas fa-trash text-xs"></i>
-            </button>
           </div>
         ))}
         {cafeItems.length === 0 && (
@@ -229,10 +250,26 @@ const DoneStep = ({ devicesCount, cafeCount, onGo }) => (
 // ─── Main SetupPage ───────────────────────────────────────────────────────────
 
 const SetupPage = () => {
-  const { saveSettings, completeSetup } = useApp();
+  const { saveSettings, completeSetup, permissions, isAuthenticated } = useApp();
   const [step, setStep] = useState(STEP_DEVICE);
   const [devices, setDevices] = useState(defaultDevices);
   const [cafeItems, setCafeItems] = useState(defaultCafe);
+
+  // Requirement: Only OWNER or superuser allowed
+  const canSetup = permissions?.manage_settings;
+
+  if (isAuthenticated && !canSetup) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 dark:bg-gray-900 bg-gray-50">
+        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl max-w-md text-center border border-red-500/20">
+          <i className="fas fa-exclamation-triangle text-5xl text-red-500 mb-4"></i>
+          <h2 className="text-2xl font-bold dark:text-white text-gray-800 mb-2">Access Denied</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">Only administrators can access the setup wizard.</p>
+          <button onClick={() => window.location.href = '/'} className="w-full py-3 rounded-xl bg-indigo-600 text-white font-bold">Return to App</button>
+        </div>
+      </div>
+    );
+  }
 
   const handleFinish = () => {
     saveSettings(devices, cafeItems);

@@ -2,8 +2,9 @@ import { useApp } from '../context/AppContext';
 import { formatDuration, formatMoney, formatOrderSummary } from '../utils/helpers';
 
 const SessionHistory = ({ onViewReceipt }) => {
-  const { sessions, deleteSession } = useApp();
+  const { sessions, deleteSession, permissions } = useApp();
   const endedSessions = sessions.filter(s => s.endTime);
+  const canDelete = permissions?.manage_settings;
 
   return (
     <div>
@@ -68,13 +69,15 @@ const SessionHistory = ({ onViewReceipt }) => {
                         >
                           <i className="fas fa-file-invoice-dollar"></i>
                         </button>
-                        <button
-                          onClick={() => deleteSession(session.id)}
-                          className="text-red-400 hover:text-red-600 transition"
-                          title="Delete"
-                        >
-                          <i className="fas fa-trash-alt"></i>
-                        </button>
+                        {canDelete && (
+                          <button
+                            onClick={() => deleteSession(session.id)}
+                            className="text-red-400 hover:text-red-600 transition"
+                            title="Delete"
+                          >
+                            <i className="fas fa-trash-alt"></i>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

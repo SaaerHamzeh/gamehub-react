@@ -1,38 +1,59 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import StandaloneSaleModal from './StandaloneSaleModal';
 
 const CafePanel = () => {
-  const { sessions, cafeItems, addOrderToSession } = useApp();
+  const { sessions, cafeItems, addOrderToSession, permissions } = useApp();
   const [selectedSessionId, setSelectedSessionId] = useState('');
+  const [isQuickSellOpen, setIsQuickSellOpen] = useState(false);
+
+  const canManageSessions = permissions?.manage_sessions;
 
   const activeSessions = sessions.filter(s => !s.endTime);
 
   const handleItemClick = (item) => {
+    if (!canManageSessions) return;
     if (!selectedSessionId) {
       alert("Please select an active session first to add this order.");
       return;
     }
-    addOrderToSession(parseFloat(selectedSessionId), item.name, item.price);
+    // API expects: sessionId, inventoryItemId, itemName, itemPrice, quantity
+    addOrderToSession(parseFloat(selectedSessionId), item.id, item.name, item.price);
   };
 
   return (
     <div className="mt-6 rounded-2xl shadow-xl p-5 dark:bg-gray-800/80 bg-white/90 border dark:border-gray-700 border-gray-200">
-      <h3 className="text-lg font-bold flex items-center gap-2 dark:text-white text-gray-800">
-        <i className="fas fa-coffee text-amber-500"></i> CAFE & SNACKS
-      </h3>
-      <div className="mt-4">
-        <label className="block text-sm font-medium dark:text-gray-300 text-gray-700">Add order to session:</label>
-        <select
-          value={selectedSessionId}
-          onChange={e => setSelectedSessionId(e.target.value)}
-          className="mt-1 w-full px-3 py-2 rounded-xl border focus:ring-amber-500 dark:bg-gray-700 bg-white dark:border-gray-600 border-gray-300 dark:text-white"
-        >
-          <option value="">-- Select Active Session --</option>
-          {activeSessions.map(s => (
-            <option key={s.id} value={s.id}>{s.stationId} - {s.name}</option>
-          ))}
-        </select>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-bold flex items-center gap-2 dark:text-white text-gray-800">
+          <i className="fas fa-coffee text-amber-500"></i> CAFE & SNACKS
+        </h3>
+        {canManageSessions && (
+          <button 
+            onClick={() => setIsQuickSellOpen(true)}
+            className="text-[11px] px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded-lg font-bold hover:bg-amber-500 hover:text-white transition"
+          >
+            <i className="fas fa-shopping-cart mr-1"></i> Quick Sell
+          </button>
+        )}
       </div>
+
+      <StandaloneSaleModal isOpen={isQuickSellOpen} onClose={() => setIsQuickSellOpen(false)} />
+
+      {canManageSessions && (
+        <div className="mt-4">
+          <label className="block text-sm font-medium dark:text-gray-300 text-gray-700">Add order to session:</label>
+          <select
+            value={selectedSessionId}
+            onChange={e => setSelectedSessionId(e.target.value)}
+            className="mt-1 w-full px-3 py-2 rounded-xl border focus:ring-amber-500 dark:bg-gray-700 bg-white dark:border-gray-600 border-gray-300 dark:text-white"
+          >
+            <option value="">-- Select Active Session --</option>
+            {activeSessions.map(s => (
+              <option key={s.id} value={s.id}>{s.stationId} - {s.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="mt-4 grid grid-cols-2 gap-3">
         {cafeItems.length === 0 ? (
           <div className="col-span-2 text-center text-sm text-gray-500 py-4">
@@ -43,10 +64,16 @@ const CafePanel = () => {
             <button
               key={i}
               type="button"
+              disabled={item.stock < 1 || !canManageSessions}
               onClick={() => handleItemClick(item)}
-              className="py-2 rounded-xl bg-gradient-to-r dark:from-gray-700 dark:to-gray-600 from-gray-100 to-gray-200 border border-gray-300 dark:border-gray-500 hover:shadow-md transition text-sm font-bold dark:text-white text-gray-800"
+              className={`py-2 px-2 rounded-xl flex flex-col items-center justify-center border transition text-sm font-bold dark:text-white text-gray-800
+                ${(item.stock < 1 || !canManageSessions) ? 'opacity-50 cursor-not-allowed bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700' : 'bg-gradient-to-r dark:from-gray-700 dark:to-gray-600 from-gray-100 to-gray-200 border-gray-300 dark:border-gray-500 hover:shadow-md active:scale-95'}
+              `}
             >
-              {item.name} (${item.price.toFixed(2)})
+              <span>{item.name} (${item.price.toFixed(2)})</span>
+              <span className={`text-[10px] font-mono mt-0.5 ${item.stock < 1 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                {item.stock} in stock
+              </span>
             </button>
           ))
         )}
