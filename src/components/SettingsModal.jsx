@@ -234,8 +234,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
             </>
           )}
 
-          {activeTab === 'users' && isOwner && <UserManagement />}
-          {activeTab === 'logs' && isOwner && <AuditLogsView />}
+          {activeTab === 'users' && canManageUsers && <UserManagement />}
+          {activeTab === 'logs' && canViewLogs && <AuditLogsView />}
         </div>
 
         {/* Footer */}

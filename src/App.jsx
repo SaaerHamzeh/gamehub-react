@@ -14,7 +14,7 @@ import FinalizeModal from './components/FinalizeModal';
 import DailyReportModal from './components/DailyReportModal';
 
 function Dashboard() {
-  const { sessions, devices, analytics, darkMode, toggleDarkMode, logout, checkAutoEnd, resetSetup, currentUser, permissions, features } = useApp();
+  const { sessions, devices, analytics, darkMode, toggleDarkMode, logout, checkAutoEnd, resetSetup, currentUser, permissions, features, systemName, language, toggleLanguage, t } = useApp();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [finalizeSessionId, setFinalizeSessionId] = useState(null);
@@ -43,7 +43,7 @@ function Dashboard() {
         <div className="flex items-center gap-3">
           <i className="fas fa-gamepad text-3xl text-rose-500 drop-shadow-lg"></i>
           <h1 className="text-3xl font-extrabold tracking-tight dark:text-white text-gray-800">
-            GameHub<span className="text-rose-500"> Manager</span>
+            {systemName}
           </h1>
           <span className="text-xs font-mono px-2 py-1 rounded-full dark:bg-gray-700 bg-gray-200 dark:text-gray-300 text-gray-700">AUTO-END</span>
         </div>
@@ -65,19 +65,22 @@ function Dashboard() {
           )}
           {canViewReport && (
             <button onClick={() => setReportOpen(true)} className="px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md bg-emerald-500 text-white hover:bg-emerald-600 font-bold">
-              <i className="fas fa-file-invoice"></i><span className="hidden sm:inline">Daily Report</span>
+              <i className="fas fa-file-invoice"></i><span className="hidden sm:inline">{t('daily_report')}</span>
             </button>
           )}
           {canManageSettings && (
             <button onClick={() => setSettingsOpen(true)} className="px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md dark:bg-gray-800 bg-white dark:text-gray-300 text-gray-700 border dark:border-gray-600 border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-              <i className="fas fa-cog"></i><span className="hidden sm:inline">Settings</span>
+              <i className="fas fa-cog"></i><span className="hidden sm:inline">{t('settings')}</span>
             </button>
           )}
+          <button onClick={toggleLanguage} className="px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md dark:bg-gray-800 bg-white text-blue-500 border dark:border-gray-600 border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <i className="fas fa-globe"></i><span className="hidden sm:inline">{language === 'ar' ? 'English' : 'عربي'}</span>
+          </button>
           <button onClick={toggleDarkMode} className="px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md dark:bg-gray-800 bg-white dark:text-yellow-300 text-gray-700 border dark:border-gray-600 border-gray-300">
             <i className={`fas ${darkMode ? 'fa-sun' : 'fa-moon'}`}></i><span className="hidden sm:inline">{darkMode ? 'Light' : 'Dark'}</span>
           </button>
           <button onClick={logout} className="px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md dark:bg-gray-800 bg-white text-red-500 border dark:border-gray-600 border-gray-300 hover:bg-red-50 dark:hover:bg-red-900/30">
-            <i className="fas fa-sign-out-alt"></i><span className="hidden sm:inline">Logout</span>
+            <i className="fas fa-sign-out-alt"></i><span className="hidden sm:inline">{t('logout')}</span>
           </button>
         </div>
       </div>
@@ -107,7 +110,7 @@ function Dashboard() {
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
             <StatCard 
-              title="Income Today" 
+              title={t('income_today')} 
               value={formatMoney(todayRevenue)} 
               icon="fa-coins" 
               trend={revenueTrend.text} 
@@ -116,25 +119,25 @@ function Dashboard() {
             />
             {canViewNetProfit && (
               <StatCard 
-                title="Net Profit" 
+                title={t('net_profit')} 
                 value={formatMoney(netProfit)} 
                 icon="fa-chart-line" 
-                subText="After inventory costs" 
+                subText={t('after_inventory')} 
                 onClick={() => setReportOpen(true)}
               />
             )}
             <StatCard 
-              title="Live Gamers" 
+              title={t('live_gamers')} 
               value={totalActive} 
               icon="fa-users" 
-              subText="Currently active" 
+              subText={t('currently_active')} 
               onClick={() => canViewReport && setReportOpen(true)}
             />
             <StatCard 
-              title="Stations Active" 
+              title={t('stations_active')} 
               value={`${activeSessions.length} / ${devices.reduce((a,b) => a+b.count,0)}`} 
               icon="fa-gamepad" 
-              subText="Total capacity" 
+              subText={t('total_capacity')} 
               onClick={() => canViewReport && setReportOpen(true)}
             />
           </div>
@@ -144,7 +147,7 @@ function Dashboard() {
             <div className="xl:col-span-1">
               <div className="rounded-2xl shadow-xl p-5 dark:bg-gray-800/80 bg-white/90 border dark:border-gray-700 border-gray-200">
                 <h3 className="text-lg font-bold flex items-center gap-2 dark:text-white text-gray-800">
-                  <i className="fas fa-play-circle text-green-500"></i> START SESSION
+                  <i className="fas fa-play-circle text-green-500"></i> {t('start_session')}
                 </h3>
                 <SessionForm />
               </div>
@@ -155,7 +158,7 @@ function Dashboard() {
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <i className="fas fa-tv text-rose-500 text-xl"></i>
-                  <h2 className="text-xl font-bold dark:text-white text-gray-800">LIVE SESSION MONITOR</h2>
+                  <h2 className="text-xl font-bold dark:text-white text-gray-800">{t('live_session_monitor')}</h2>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${activeSessions.length ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
                     {activeSessions.length} active
                   </span>
@@ -168,7 +171,7 @@ function Dashboard() {
                 {activeSessions.length === 0 && (
                   <div className="rounded-2xl p-8 text-center dark:bg-gray-800/40 bg-white/60 border dark:border-gray-700 border-gray-200">
                     <i className="fas fa-hourglass-half text-4xl text-gray-500 mb-2"></i>
-                    <p className="dark:text-gray-400 text-gray-500">No active gaming sessions. Start a new session!</p>
+                    <p className="dark:text-gray-400 text-gray-500">{t('no_active')}</p>
                   </div>
                 )}
               </div>

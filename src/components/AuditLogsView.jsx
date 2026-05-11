@@ -1,18 +1,22 @@
 import { useApp } from '../context/AppContext';
 
 const AuditLogsView = () => {
-  const { auditLogs, clearAuditLogs } = useApp();
+  const { auditLogs, clearAuditLogs, currentUser } = useApp();
+
+  const isOwner = currentUser?.is_superuser || currentUser?.role === 'owner' || currentUser?.role === 'Owner';
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-bold dark:text-white text-gray-800">System Activity Logs</h3>
-        <button 
-          onClick={clearAuditLogs}
-          className="px-4 py-2 border border-red-500/50 text-red-500 rounded-xl text-sm font-bold hover:bg-red-500 hover:text-white transition"
-        >
-          <i className="fas fa-trash-alt mr-2"></i> Clear All Logs
-        </button>
+        {isOwner && (
+          <button 
+            onClick={clearAuditLogs}
+            className="px-4 py-2 border border-red-500/50 text-red-500 rounded-xl text-sm font-bold hover:bg-red-500 hover:text-white transition"
+          >
+            <i className="fas fa-trash-alt mr-2"></i> Clear All Logs
+          </button>
+        )}
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">

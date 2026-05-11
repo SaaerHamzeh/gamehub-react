@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { getActiveDurationMs, getLiveCost, formatRemaining, formatOrderSummary } from '../utils/helpers';
 
 const ActiveSessionCard = ({ session }) => {
-  const { darkMode, togglePauseSession, endSession, removeOrderFromSession, permissions } = useApp();
+  const { darkMode, togglePauseSession, endSession, removeOrderFromSession, permissions, t } = useApp();
   const [display, setDisplay] = useState({ timer: '00:00:00', cost: 0, pulsing: false });
 
   const canManage = permissions?.manage_sessions;
@@ -80,10 +80,10 @@ const ActiveSessionCard = ({ session }) => {
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-bold text-lg dark:text-white text-gray-800">{session.name}</p>
               {session.isPaused && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-yellow-400/20 text-yellow-600 dark:text-yellow-400 animate-pulse">PAUSED</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-yellow-400/20 text-yellow-600 dark:text-yellow-400 animate-pulse">{t('paused')}</span>
               )}
               {session.sessionType === 'POST' && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400">OPEN TIME</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400">{t('open_time')}</span>
               )}
             </div>
             <div className="flex gap-2 mt-1 flex-wrap">
@@ -116,7 +116,7 @@ const ActiveSessionCard = ({ session }) => {
             )}
           </div>
           <div className="text-right">
-            <p className="text-xs dark:text-gray-400 text-gray-500">Est. Total</p>
+            <p className="text-xs dark:text-gray-400 text-gray-500">{t('est_total')}</p>
             <p className="text-xl font-bold text-amber-400">{display.cost.toFixed(2)} USD</p>
           </div>
         </div>
@@ -139,12 +139,12 @@ const ActiveSessionCard = ({ session }) => {
                   onClick={handleEnd}
                   className="px-4 py-2 h-10 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition flex items-center justify-center gap-2 shadow-md"
                 >
-                  <i className="fas fa-power-off"></i> End Session
+                  <i className="fas fa-power-off"></i> {t('end_session')}
                 </button>
               </>
             )}
             {!canManage && (
-              <span className="text-xs text-gray-400 italic">View Only</span>
+              <span className="text-xs text-gray-400 italic">{t('view_only')}</span>
             )}
           </div>
         </div>

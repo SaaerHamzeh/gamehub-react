@@ -47,7 +47,7 @@ const StepIndicator = ({ current }) => {
 
 // ─── Step 0: Devices ─────────────────────────────────────────────────────────
 
-const DeviceStep = ({ devices, setDevices, onNext }) => {
+const DeviceStep = ({ devices, setDevices, shopName, setShopName, onNext, language }) => {
   const addDevice = () => {
     let newId = 'NEW';
     let c = 1;
@@ -62,6 +62,7 @@ const DeviceStep = ({ devices, setDevices, onNext }) => {
     setDevices(prev => prev.filter((_, i) => i !== index));
 
   const validate = () => {
+    if (!shopName.trim()) { alert('Please enter your shop name.'); return; }
     if (devices.length === 0) { alert('Add at least one device to continue.'); return; }
     const ids = new Set();
     for (let d of devices) {
@@ -78,8 +79,24 @@ const DeviceStep = ({ devices, setDevices, onNext }) => {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-500/10 mb-4">
           <i className="fas fa-gamepad text-3xl text-indigo-500"></i>
         </div>
-        <h2 className="text-2xl font-extrabold dark:text-white text-gray-800">What devices do you have?</h2>
-        <p className="dark:text-gray-400 text-gray-500 mt-2 text-sm">Add all your gaming stations — PCs, PlayStations, billiard tables, etc.</p>
+        <h2 className="text-2xl font-extrabold dark:text-white text-gray-800">
+          {language === 'ar' ? 'ما هو اسم محلك وما هي الأجهزة المتوفرة؟' : 'What is your shop name and what devices do you have?'}
+        </h2>
+        <p className="dark:text-gray-400 text-gray-500 mt-2 text-sm">
+          {language === 'ar' ? 'أدخل اسم محلك ليظهر في النظام والفواتير، ثم أضف كافة أجهزتك.' : 'Enter your shop name to appear in the system and receipts, then add all your gaming stations.'}
+        </p>
+      </div>
+
+      <div className="mb-6 bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-500/30">
+        <label className="block text-sm font-bold text-indigo-900 dark:text-indigo-300 mb-2">
+          {language === 'ar' ? 'اسم المحل / الصالة (Shop Name)' : 'Shop / Hall Name'}
+        </label>
+        <input 
+          value={shopName} 
+          onChange={e => setShopName(e.target.value)}
+          placeholder="e.g. Matrix Gaming Lounge"
+          className="w-full px-4 py-3 rounded-lg border text-base font-bold dark:bg-gray-800 bg-white dark:border-gray-600 border-gray-300 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" 
+        />
       </div>
 
       <div className="space-y-3 max-h-[340px] overflow-y-auto custom-scrollbar pr-1">
@@ -250,10 +267,11 @@ const DoneStep = ({ devicesCount, cafeCount, onGo }) => (
 // ─── Main SetupPage ───────────────────────────────────────────────────────────
 
 const SetupPage = () => {
-  const { saveSettings, completeSetup, permissions, isAuthenticated } = useApp();
+  const { saveSettings, completeSetup, permissions, isAuthenticated, systemName: savedSystemName, language } = useApp();
   const [step, setStep] = useState(STEP_DEVICE);
   const [devices, setDevices] = useState(defaultDevices);
   const [cafeItems, setCafeItems] = useState(defaultCafe);
+  const [shopName, setShopName] = useState(savedSystemName || '');
 
   // Requirement: Only OWNER or superuser allowed
   const canSetup = permissions?.manage_settings;
@@ -272,7 +290,7 @@ const SetupPage = () => {
   }
 
   const handleFinish = () => {
-    saveSettings(devices, cafeItems);
+    saveSettings(devices, cafeItems, shopName);
     setStep(STEP_DONE);
   };
 
@@ -289,7 +307,8 @@ const SetupPage = () => {
             <div className="flex items-center justify-center gap-2 mb-1">
               <i className="fas fa-gamepad text-3xl text-rose-500"></i>
               <h1 className="text-3xl font-extrabold dark:text-white text-gray-800">
-                GameHub<span className="text-rose-500"> Pro</span>
+                {language === 'ar' ? 'الإعداد ' : 'Initial '}
+                <span className="text-rose-500">{language === 'ar' ? 'الأولي' : 'Setup'}</span>
               </h1>
             </div>
             <p className="text-sm dark:text-gray-500 text-gray-400 font-medium">Initial Setup — takes less than a minute</p>
@@ -303,7 +322,10 @@ const SetupPage = () => {
               <DeviceStep
                 devices={devices}
                 setDevices={setDevices}
+                shopName={shopName}
+                setShopName={setShopName}
                 onNext={() => setStep(STEP_CAFE)}
+                language={language}
               />
             )}
             {step === STEP_CAFE && (

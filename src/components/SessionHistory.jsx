@@ -2,7 +2,7 @@ import { useApp } from '../context/AppContext';
 import { formatDuration, formatMoney, formatOrderSummary } from '../utils/helpers';
 
 const SessionHistory = ({ onViewReceipt }) => {
-  const { sessions, deleteSession, permissions } = useApp();
+  const { sessions, deleteSession, permissions, t } = useApp();
   const endedSessions = sessions.filter(s => s.endTime);
   const canDelete = permissions?.manage_settings;
 
@@ -11,10 +11,10 @@ const SessionHistory = ({ onViewReceipt }) => {
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2">
           <i className="fas fa-clock-rotate-left text-cyan-400"></i>
-          <h2 className="text-xl font-bold dark:text-white text-gray-800">Recent Activity</h2>
+          <h2 className="text-xl font-bold dark:text-white text-gray-800">{t('recent_activity')}</h2>
         </div>
         <span className="text-xs px-3 py-1 rounded-full dark:bg-gray-700 bg-gray-200">
-          {endedSessions.length} total sessions
+          {endedSessions.length} {t('total_sessions')}
         </span>
       </div>
 
@@ -23,20 +23,20 @@ const SessionHistory = ({ onViewReceipt }) => {
           <table className="min-w-full text-sm">
             <thead className="dark:bg-gray-900/80 bg-gray-100 dark:text-gray-300 text-gray-700">
               <tr>
-                <th className="px-4 py-3 text-left">S-ID</th>
-                <th className="px-4 py-3 text-left">Customer</th>
-                <th className="px-4 py-3 text-left">Station</th>
-                <th className="px-4 py-3 text-left">Start/End</th>
-                <th className="px-4 py-3 text-left">Duration</th>
-                <th className="px-4 py-3 text-left">Earnings</th>
-                <th className="px-4 py-3 text-center">Action</th>
+                <th className="px-4 py-3 text-left">{t('s_id')}</th>
+                <th className="px-4 py-3 text-left">{t('customer')}</th>
+                <th className="px-4 py-3 text-left">{t('station')}</th>
+                <th className="px-4 py-3 text-left">{t('start_end')}</th>
+                <th className="px-4 py-3 text-left">{t('duration')}</th>
+                <th className="px-4 py-3 text-left">{t('earnings')}</th>
+                <th className="px-4 py-3 text-center">{t('action')}</th>
               </tr>
             </thead>
             <tbody>
               {endedSessions.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="text-center py-8 dark:text-gray-400 text-gray-500">
-                    No completed sessions yet
+                    {t('no_completed_sessions')}
                   </td>
                 </tr>
               ) : (

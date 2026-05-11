@@ -35,6 +35,147 @@ const normalizeCafeItem = (item) => ({
   stock: item.quantity_in_stock ?? item.stock ?? 0,
 });
 
+const translations = {
+  en: {
+    income_today: "Income Today",
+    net_profit: "Net Profit",
+    live_gamers: "Live Gamers",
+    stations_active: "Stations Active",
+    start_session: "START SESSION",
+    live_session_monitor: "LIVE SESSION MONITOR",
+    settings: "Settings",
+    daily_report: "Daily Report",
+    logout: "Logout",
+    cafe_panel_title: "CAFE & EXTRAS",
+    add: "Add",
+    stock: "Stock",
+    session_history: "SESSION HISTORY",
+    today: "Today",
+    all_time: "All Time",
+    customer: "Customer",
+    type: "Type",
+    time: "Time",
+    duration: "Duration",
+    total: "Total",
+    actions: "Actions",
+    pause: "Pause",
+    resume: "Resume",
+    end_pay: "End & Pay",
+    after_inventory: "After inventory costs",
+    currently_active: "Currently active",
+    total_capacity: "Total capacity",
+    no_active: "No active gaming sessions. Start a new session!",
+    customer_name: "Customer Name",
+    device_type: "Device Type",
+    station: "Station",
+    prepaid: "Prepaid",
+    postpaid: "Postpaid",
+    price_hr: "Price/Hr ($)",
+    hrs: "Hrs",
+    fixed_cost: "Fixed Cost ($)",
+    play_cost: "Play Cost",
+    cafe_orders: "Cafe Orders",
+    search: "Search sessions...",
+    receipt: "Receipt",
+    no_devices_configured: "No gaming devices configured.",
+    add_devices_settings: "Add some in Settings to start a session.",
+    select_device_station: "Please select a device type and station.",
+    price_must_be_positive: "Price must be >= 0",
+    duration_must_be_positive: "Duration must be > 0",
+    is_already_occupied: "is already occupied!",
+    leave_blank_auto_number: "Leave blank for auto-numbering",
+    active: "ACTIVE",
+    price_edit_settings_only: "Price can only be edited from Settings",
+    price_per_game: "Price Per Game ($)",
+    strategy: "Strategy",
+    quick_sell: "Quick Sell",
+    add_order_to_session: "Add order to session:",
+    select_active_session: "-- Select Active Session --",
+    no_cafe_items: "No cafe items configured. Add them in Settings.",
+    paused: "PAUSED",
+    open_time: "OPEN TIME",
+    est_total: "Est. Total",
+    end_session: "End Session",
+    view_only: "View Only",
+    recent_activity: "Recent Activity",
+    total_sessions: "total sessions",
+    no_completed_sessions: "No completed sessions yet",
+    start_end: "Start/End",
+    earnings: "Earnings",
+    action: "Action",
+    s_id: "S-ID"
+  },
+  ar: {
+    income_today: "إيرادات اليوم",
+    net_profit: "صافي الربح",
+    live_gamers: "اللاعبين الحاليين",
+    stations_active: "الأجهزة النشطة",
+    start_session: "بدء جلسة جديدة",
+    live_session_monitor: "مراقبة الجلسات الحالية",
+    settings: "الإعدادات",
+    daily_report: "التقرير اليومي",
+    logout: "تسجيل الخروج",
+    cafe_panel_title: "الكافيه والإضافات",
+    add: "إضافة",
+    stock: "المخزون",
+    session_history: "سجل الجلسات",
+    today: "اليوم",
+    all_time: "كل الوقت",
+    customer: "الزبون",
+    type: "النوع",
+    time: "الوقت",
+    duration: "المدة",
+    total: "الإجمالي",
+    actions: "إجراءات",
+    pause: "إيقاف",
+    resume: "استئناف",
+    end_pay: "إنهاء ودفع",
+    after_inventory: "بعد خصم تكاليف المخزون",
+    currently_active: "نشط حالياً",
+    total_capacity: "السعة الإجمالية",
+    no_active: "لا يوجد جلسات نشطة. ابدأ جلسة جديدة!",
+    customer_name: "اسم الزبون",
+    device_type: "نوع الجهاز",
+    station: "الجهاز",
+    prepaid: "مسبق الدفع",
+    postpaid: "مفتوح (آجل)",
+    price_hr: "السعر/ساعة ($)",
+    hrs: "الساعات",
+    fixed_cost: "سعر ثابت ($)",
+    play_cost: "تكلفة اللعب",
+    cafe_orders: "طلبات الكافيه",
+    search: "ابحث عن جلسة...",
+    receipt: "إيصال",
+    no_devices_configured: "لا يوجد أجهزة معرّفة.",
+    add_devices_settings: "أضف أجهزة من الإعدادات للبدء.",
+    select_device_station: "الرجاء اختيار نوع الجهاز والجهاز.",
+    price_must_be_positive: "يجب أن يكون السعر أكبر من أو يساوي الصفر",
+    duration_must_be_positive: "يجب أن تكون المدة أكبر من الصفر",
+    is_already_occupied: "مشغول حالياً!",
+    leave_blank_auto_number: "اتركه فارغاً لترقيم تلقائي (زبون #رقم)",
+    active: "نشط",
+    price_edit_settings_only: "سعر السيشن لايعدل الا من الاعدادات",
+    price_per_game: "السعر لكل لعبة ($)",
+    strategy: "نظام التسعير",
+    quick_sell: "بيع سريع",
+    add_order_to_session: "أضف طلب للجلسة:",
+    select_active_session: "-- اختر جلسة نشطة --",
+    no_cafe_items: "لا يوجد عناصر كافيه. أضفها من الإعدادات.",
+    paused: "مؤقت",
+    open_time: "وقت مفتوح",
+    est_total: "المجموع المقدر",
+    end_session: "إنهاء الجلسة",
+    view_only: "عرض فقط",
+    recent_activity: "النشاط الأخير",
+    total_sessions: "إجمالي الجلسات",
+    no_completed_sessions: "لا يوجد جلسات مكتملة بعد",
+    start_end: "البداية/النهاية",
+    earnings: "الأرباح",
+    action: "إجراء",
+    s_id: "الرقم"
+  }
+};
+
 export const AppProvider = ({ children }) => {
   const [sessions, setSessions] = useState([]);
   const [devices, setDevices] = useState([]);
@@ -50,6 +191,8 @@ export const AppProvider = ({ children }) => {
     const s = localStorage.getItem('darkMode');
     return s !== null ? JSON.parse(s) : true;
   });
+  const [systemName, setSystemName] = useState(() => localStorage.getItem('gamehub_system_name') || 'GameHub Pro');
+  const [language, setLanguage] = useState(() => localStorage.getItem('gamehub_language') || 'en');
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [hasCompletedSetup, setHasCompletedSetup] = useState(
@@ -74,6 +217,8 @@ export const AppProvider = ({ children }) => {
         if (branchRes.data && branchRes.data.length > 0) {
           currentBranchId = branchRes.data[0].id;
           setBranchId(currentBranchId);
+          setSystemName(branchRes.data[0].name);
+          localStorage.setItem('gamehub_system_name', branchRes.data[0].name);
         }
       } catch (e) {
         console.warn("Could not fetch branches", e);
@@ -147,6 +292,13 @@ export const AppProvider = ({ children }) => {
   }, [darkMode]);
 
   const toggleDarkMode = () => setDarkMode(prev => !prev);
+  
+  useEffect(() => {
+    localStorage.setItem('gamehub_language', language);
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+  }, [language]);
+
+  const toggleLanguage = () => setLanguage(prev => prev === 'en' ? 'ar' : 'en');
 
   const login = async (username, password) => {
     try {
@@ -344,8 +496,10 @@ export const AppProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [isAuthenticated, checkAutoEnd]);
 
-  const saveSettings = async (newDevices, newCafeItems) => {
+  const saveSettings = async (newDevices, newCafeItems, newSystemName) => {
     try {
+      const branchName = newSystemName || systemName || 'Main Branch';
+      
       const resource_types = newDevices.map(d => ({
         code: d.id,
         name: d.name,
@@ -375,7 +529,7 @@ export const AppProvider = ({ children }) => {
       }));
 
       await axios.post('/setup/bulk/', {
-        branch: { name: 'Main Branch', code: 'MAIN' },
+        branch: { name: branchName, code: 'MAIN' },
         resource_types,
         resource_units,
         inventory_categories,
@@ -408,14 +562,18 @@ export const AppProvider = ({ children }) => {
     URL.revokeObjectURL(link.href);
   };
 
+  const t = (key) => {
+    return translations[language]?.[key] || translations['en']?.[key] || key;
+  };
+
   return (
     <AppContext.Provider value={{
       sessions, devices, cafeItems, analytics, darkMode, isAuthenticated, hasCompletedSetup,
-      users, auditLogs, branchId, currentUser, permissions, features,
-      toggleDarkMode, login, logout, completeSetup, resetSetup,
+      users, auditLogs, branchId, currentUser, permissions, features, systemName, language,
+      toggleDarkMode, toggleLanguage, login, logout, completeSetup, resetSetup,
       addSession, endSession, deleteSession, togglePauseSession,
       addOrderToSession, removeOrderFromSession, checkAutoEnd, saveSettings, exportDailyReport,
-      isStationActive, makeDirectSale, closeDayReport, addUser, updateUser, deleteUser, clearAuditLogs
+      isStationActive, makeDirectSale, closeDayReport, addUser, updateUser, deleteUser, clearAuditLogs, t
     }}>
       {children}
     </AppContext.Provider>
