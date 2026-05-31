@@ -1,23 +1,27 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { getActiveDurationMs, formatDuration } from '../utils/helpers';
+import { formatDuration } from '../utils/helpers';
+import { hasPermission } from '../utils/permissions';
 
 const FinalizeModal = ({ sessionId, onClose }) => {
-  const { sessions, endSession } = useApp();
+  const { sessions, endSession, permissions, systemName, currentUser } = useApp();
   const [discount, setDiscount] = useState(0);
   const receiptRef = useRef(null);
 
   const session = sessions.find(s => s.id === sessionId);
   if (!session) return null;
+  const canEndSession = hasPermission(permissions, 'can_end_session');
+  const canApplyDiscount = hasPermission(permissions, 'can_apply_discount');
 
-  const now = new Date();
-  const activeMs = session.endTime ? (session.durationMinutes * 60000) : getActiveDurationMs(session, now);
-  const durationHours = activeMs / (1000 * 3600);
-  const playCost = durationHours * session.pricePerHour;
+  const elapsedMinutes = session.elapsedTime ?? session.durationMinutes ?? 0;
+  const backendTotal = Number(session.finalTotal ?? session.liveCost ?? session.totalCost ?? 0);
   const itemsCost = session.ordersCost || 0;
-  const subtotal = playCost + itemsCost;
-  const appliedDiscount = session.endTime ? (session.discount || 0) : Math.min(Math.max(0, discount), subtotal);
-  const total = subtotal - appliedDiscount;
+  const playCost = Math.max(0, backendTotal + (session.discount || 0) - itemsCost);
+  const subtotal = Math.max(0, playCost + itemsCost);
+  const appliedDiscount = session.endTime || canApplyDiscount
+    ? (session.endTime ? (session.discount || 0) : Math.min(Math.max(0, discount), subtotal))
+    : 0;
+  const total = Math.max(0, backendTotal - (session.endTime ? 0 : appliedDiscount));
 
   const handleEnd = () => {
     if (window.confirm("Are you sure you want to end this session? This will finalize all costs.")) {
@@ -37,7 +41,7 @@ const FinalizeModal = ({ sessionId, onClose }) => {
       link.download = `receipt_${sessionId}.png`;
       link.href = imgData;
       link.click();
-    } catch (e) {
+    } catch {
       alert("Could not generate receipt image.");
     }
   };
@@ -62,17 +66,19 @@ const FinalizeModal = ({ sessionId, onClose }) => {
           <div id="receipt-print-area" ref={receiptRef} className="p-6 rounded-lg mx-auto max-w-[280px] mb-4 shadow-sm border border-gray-100 scale-95 origin-top">
             <div className="receipt-header text-center">
               <i className="fas fa-gamepad text-3xl text-rose-500 mb-1"></i>
-              <h2 className="text-xl font-black uppercase tracking-widest text-gray-900">GameHub Pro</h2>
+              <h2 className="text-xl font-black uppercase tracking-widest text-gray-900">{systemName}</h2>
               <p className="text-[10px] opacity-70 text-gray-700">
                 ID: #{session.id.toString().slice(-5)} •{' '}
-                {session.endTime ? new Date(session.endTime).toLocaleTimeString() : new Date().toLocaleTimeString()}
+                {session.endTime ? new Date(session.endTime).toLocaleString() : new Date().toLocaleString()}
               </p>
             </div>
 
             <div className="py-2 text-[11px] text-gray-800">
               <div className="receipt-item"><span>CUSTOMER:</span><span>{session.name}</span></div>
               <div className="receipt-item"><span>STATION:</span><span>{session.stationId}</span></div>
-              <div className="receipt-item"><span>TIME:</span><span>{formatDuration(session.durationMinutes || (activeMs / 60000))}</span></div>
+              <div className="receipt-item"><span>CASHIER:</span><span>{currentUser?.username || '-'}</span></div>
+              <div className="receipt-item"><span>PAYMENT:</span><span>Cash</span></div>
+              <div className="receipt-item"><span>TIME:</span><span>{formatDuration(elapsedMinutes)}</span></div>
             </div>
 
             <div className="receipt-total-section">
@@ -84,7 +90,7 @@ const FinalizeModal = ({ sessionId, onClose }) => {
                   <div className="mt-1 text-[9px] font-bold opacity-60 uppercase text-gray-700">Cafe:</div>
                   {session.orders.map((o, i) => (
                     <div key={i} className="receipt-item text-[10px] pl-1 text-gray-800">
-                      <span>1x {o.name}</span><span>${o.price.toFixed(2)}</span>
+                      <span>{o.quantity || 1}x {o.name}</span><span>${Number(o.price ?? o.total_price ?? 0).toFixed(2)}</span>
                     </div>
                   ))}
                 </>
@@ -111,7 +117,7 @@ const FinalizeModal = ({ sessionId, onClose }) => {
           </div>
 
           {/* Discount Input - only for active sessions */}
-          {!session.endTime && (
+          {!session.endTime && canApplyDiscount && (
             <div className="px-2">
               <label className="block text-[11px] font-bold dark:text-gray-400 text-gray-500 mb-1">Apply Discount ($)</label>
               <input
@@ -135,7 +141,7 @@ const FinalizeModal = ({ sessionId, onClose }) => {
           <button onClick={downloadReceipt} className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-lg text-xs font-bold transition shadow-sm flex items-center gap-2">
             <i className="fas fa-download text-blue-500"></i> Receipt
           </button>
-          {!session.endTime && (
+          {!session.endTime && canEndSession && (
             <button onClick={handleEnd} className="px-5 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-lg text-xs font-bold transition shadow-lg flex items-center gap-2">
               <i className="fas fa-check-double"></i> Checkout & End
             </button>

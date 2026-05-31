@@ -1,12 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { getActiveDurationMs, getLiveCost, formatRemaining, formatOrderSummary } from '../utils/helpers';
+import { getActiveDurationMs, formatRemaining, getDeviceColorTone, getDeviceTintStyle } from '../utils/helpers';
+import { hasAnyPermission, hasPermission } from '../utils/permissions';
 
-const ActiveSessionCard = ({ session }) => {
+const ActiveSessionCard = ({ session, onOpenBuffet }) => {
   const { darkMode, togglePauseSession, endSession, removeOrderFromSession, permissions, t } = useApp();
+  const canAddOrder = hasPermission(permissions, 'can_add_session_order');
   const [display, setDisplay] = useState({ timer: '00:00:00', cost: 0, pulsing: false });
 
-  const canManage = permissions?.manage_sessions;
+  const canPauseOrResume = session.isPaused
+    ? hasPermission(permissions, 'can_resume_session')
+    : hasPermission(permissions, 'can_pause_session');
+  const canEndSession = hasPermission(permissions, 'can_end_session');
+  const canRemoveOrder = hasPermission(permissions, 'can_remove_session_order');
+  const canActOnSession = hasAnyPermission(permissions, [
+    'can_pause_session',
+    'can_resume_session',
+    'can_end_session',
+  ]);
   const intervalRef = useRef(null);
 
   const handleRemoveOrder = (orderId, itemName) => {
@@ -19,7 +30,7 @@ const ActiveSessionCard = ({ session }) => {
     const update = () => {
       const now = new Date();
       const activeMs = getActiveDurationMs(session, now);
-      const liveCost = getLiveCost(session, now);
+      const liveCost = Number(session.liveCost ?? session.finalTotal ?? session.totalCost ?? 0);
       let timerText = '00:00:00';
       let pulsing = false;
 
@@ -42,7 +53,6 @@ const ActiveSessionCard = ({ session }) => {
   }, [session]);
 
   const now = new Date();
-  const activeMs = getActiveDurationMs(session, now);
   let remainingMs = null;
   let isExpired = false;
   if (session.sessionType === 'PRE' && session.plannedEndTime) {
@@ -65,6 +75,10 @@ const ActiveSessionCard = ({ session }) => {
     : darkMode
     ? 'text-green-400'
     : 'text-green-600';
+  const deviceColorKey = session.deviceType;
+  const deviceTint = getDeviceTintStyle(deviceColorKey, darkMode, { includeBorder: false });
+  const deviceTone = getDeviceColorTone(deviceColorKey, darkMode);
+
 
   const handleEnd = () => {
     if (window.confirm("End this session now?")) {
@@ -73,10 +87,25 @@ const ActiveSessionCard = ({ session }) => {
   };
 
   return (
-    <div className={`rounded-xl overflow-hidden shadow-lg border-l-8 ${borderColor} dark:bg-gray-800/90 bg-white border dark:border-gray-700 border-gray-200 transition-all`}>
+    <div
+      className={`rounded-xl overflow-hidden shadow-lg border-l-8 ${borderColor} border dark:border-gray-700 border-gray-200 transition-all`}
+      style={deviceTint}
+    >
       <div className="p-4">
-        <div className="flex justify-between items-start">
-          <div>
+        <div className="flex justify-between items-start gap-3">
+          <div className="flex gap-3 min-w-0">
+            {onOpenBuffet && canAddOrder && (
+              <button
+                type="button"
+                onClick={onOpenBuffet}
+                className="shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-lg hover:shadow-amber-500/40 hover:scale-105 active:scale-95 transition flex flex-col items-center justify-center ring-2 ring-amber-400/30"
+                title={t('add_buffet_to_session')}
+              >
+                <i className="fas fa-mug-hot text-lg" />
+                <span className="text-[8px] font-bold uppercase mt-0.5">{t('buffet')}</span>
+              </button>
+            )}
+          <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-bold text-lg dark:text-white text-gray-800">{session.name}</p>
               {session.isPaused && (
@@ -87,7 +116,10 @@ const ActiveSessionCard = ({ session }) => {
               )}
             </div>
             <div className="flex gap-2 mt-1 flex-wrap">
-              <span className={`text-xs px-2 py-0.5 rounded-full ${session.deviceType === 'PC' ? 'bg-purple-500/20 text-purple-300' : 'bg-blue-500/20 text-blue-300'}`}>
+              <span
+                className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                style={{ backgroundColor: deviceTone.backgroundColor, color: deviceTone.textColor }}
+              >
                 {session.deviceType}
               </span>
               <span className="text-xs font-mono dark:text-gray-400 text-gray-600">
@@ -101,7 +133,7 @@ const ActiveSessionCard = ({ session }) => {
                     <i className="fas fa-coffee opacity-60"></i>
                     <span className="font-medium whitespace-nowrap">{order.quantity > 1 ? `${order.quantity}x ` : ""}{order.item_name}</span>
                     <span className="opacity-60">${parseFloat(order.total_price).toFixed(2)}</span>
-                    {canManage && (
+                    {canRemoveOrder && (
                       <button 
                         onClick={() => handleRemoveOrder(order.id, order.item_name)}
                         className="ml-1 text-red-500 hover:text-red-700 transition-colors"
@@ -115,7 +147,8 @@ const ActiveSessionCard = ({ session }) => {
               </div>
             )}
           </div>
-          <div className="text-right">
+          </div>
+          <div className="text-right shrink-0">
             <p className="text-xs dark:text-gray-400 text-gray-500">{t('est_total')}</p>
             <p className="text-xl font-bold text-amber-400">{display.cost.toFixed(2)} USD</p>
           </div>
@@ -126,24 +159,28 @@ const ActiveSessionCard = ({ session }) => {
             {display.timer}
           </p>
           <div className="flex items-center gap-2">
-            {canManage && (
+            {canActOnSession && (
               <>
-                <button
-                  onClick={() => togglePauseSession(session.id)}
-                  className={`w-10 h-10 rounded-lg ${session.isPaused ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-500 hover:bg-yellow-600'} text-white transition flex items-center justify-center shadow-md`}
-                  title={session.isPaused ? 'Resume' : 'Pause'}
-                >
-                  <i className={`fas ${session.isPaused ? 'fa-play' : 'fa-pause'}`}></i>
-                </button>
-                <button
-                  onClick={handleEnd}
-                  className="px-4 py-2 h-10 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition flex items-center justify-center gap-2 shadow-md"
-                >
-                  <i className="fas fa-power-off"></i> {t('end_session')}
-                </button>
+                {canPauseOrResume && (
+                  <button
+                    onClick={() => togglePauseSession(session)}
+                    className={`w-10 h-10 rounded-lg ${session.isPaused ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-500 hover:bg-yellow-600'} text-white transition flex items-center justify-center shadow-md`}
+                    title={session.isPaused ? 'Resume' : 'Pause'}
+                  >
+                    <i className={`fas ${session.isPaused ? 'fa-play' : 'fa-pause'}`}></i>
+                  </button>
+                )}
+                {canEndSession && (
+                  <button
+                    onClick={handleEnd}
+                    className="px-4 py-2 h-10 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition flex items-center justify-center gap-2 shadow-md"
+                  >
+                    <i className="fas fa-power-off"></i> {t('end_session')}
+                  </button>
+                )}
               </>
             )}
-            {!canManage && (
+            {!canActOnSession && (
               <span className="text-xs text-gray-400 italic">{t('view_only')}</span>
             )}
           </div>

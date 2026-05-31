@@ -1,18 +1,28 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import StandaloneSaleModal from './StandaloneSaleModal';
+import { hasAnyPermission, hasPermission } from '../utils/permissions';
 
 const CafePanel = () => {
   const { sessions, cafeItems, addOrderToSession, permissions, t } = useApp();
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [isQuickSellOpen, setIsQuickSellOpen] = useState(false);
 
-  const canManageSessions = permissions?.manage_sessions;
+  const canAddSessionOrder = hasPermission(permissions, 'can_add_session_order');
+  const canCreateStandaloneSale = hasPermission(permissions, 'can_create_standalone_sale');
+  const canViewCafe = hasAnyPermission(permissions, [
+    'can_add_session_order',
+    'can_create_standalone_sale',
+    'can_manage_inventory',
+    'can_update_stock',
+  ]);
 
   const activeSessions = sessions.filter(s => !s.endTime);
+  const activeCafeItems = cafeItems.filter(item => item.isActive !== false);
+  const lowStockItems = activeCafeItems.filter(item => item.lowStock);
 
   const handleItemClick = (item) => {
-    if (!canManageSessions) return;
+    if (!canAddSessionOrder) return;
     if (!selectedSessionId) {
       alert("Please select an active session first to add this order.");
       return;
@@ -27,7 +37,7 @@ const CafePanel = () => {
         <h3 className="text-lg font-bold flex items-center gap-2 dark:text-white text-gray-800">
           <i className="fas fa-coffee text-amber-500"></i> {t('cafe_panel_title')}
         </h3>
-        {canManageSessions && (
+        {canCreateStandaloneSale && (
           <button 
             onClick={() => setIsQuickSellOpen(true)}
             className="text-[11px] px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded-lg font-bold hover:bg-amber-500 hover:text-white transition"
@@ -39,7 +49,14 @@ const CafePanel = () => {
 
       <StandaloneSaleModal isOpen={isQuickSellOpen} onClose={() => setIsQuickSellOpen(false)} />
 
-      {canManageSessions && (
+      {lowStockItems.length > 0 && (
+        <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300">
+          <i className="fas fa-triangle-exclamation mr-2"></i>
+          Low stock: {lowStockItems.map(item => item.name).join(', ')}
+        </div>
+      )}
+
+      {canAddSessionOrder && (
         <div className="mt-4">
           <label className="block text-sm font-medium dark:text-gray-300 text-gray-700">{t('add_order_to_session')}</label>
           <select
@@ -55,25 +72,35 @@ const CafePanel = () => {
         </div>
       )}
       <div className="mt-4 grid grid-cols-2 gap-3">
-        {cafeItems.length === 0 ? (
+        {!canViewCafe ? (
+          <div className="col-span-2 text-center text-sm text-gray-500 py-4">
+            {t('view_only')}
+          </div>
+        ) : activeCafeItems.length === 0 ? (
           <div className="col-span-2 text-center text-sm text-gray-500 py-4">
             {t('no_cafe_items')}
           </div>
         ) : (
-          cafeItems.map((item, i) => (
+          activeCafeItems.map((item, i) => (
             <button
               key={i}
               type="button"
-              disabled={item.stock < 1 || !canManageSessions}
+              disabled={item.stock < 1 || !canAddSessionOrder}
               onClick={() => handleItemClick(item)}
               className={`py-2 px-2 rounded-xl flex flex-col items-center justify-center border transition text-sm font-bold dark:text-white text-gray-800
-                ${(item.stock < 1 || !canManageSessions) ? 'opacity-50 cursor-not-allowed bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700' : 'bg-gradient-to-r dark:from-gray-700 dark:to-gray-600 from-gray-100 to-gray-200 border-gray-300 dark:border-gray-500 hover:shadow-md active:scale-95'}
+                ${(item.stock < 1 || !canAddSessionOrder) ? 'opacity-50 cursor-not-allowed bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700' : 'bg-gradient-to-r dark:from-gray-700 dark:to-gray-600 from-gray-100 to-gray-200 border-gray-300 dark:border-gray-500 hover:shadow-md active:scale-95'}
               `}
             >
-              <span>{item.name} (${item.price.toFixed(2)})</span>
+              <span>{item.name} (${item.price.toFixed(2)} USD)</span>
+              {item.local_price !== null && item.local_price !== undefined && (
+                <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                  {item.local_price.toFixed(2)} {item.local_currency_code}
+                </span>
+              )}
               <span className={`text-[10px] font-mono mt-0.5 ${item.stock < 1 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
                 {item.stock} {t('stock')}
               </span>
+              {item.lowStock && <span className="text-[10px] font-black text-red-500">Low stock</span>}
             </button>
           ))
         )}

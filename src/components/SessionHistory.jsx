@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatDuration, formatMoney, formatOrderSummary } from '../utils/helpers';
+import SessionCorrectionModal from './SessionCorrectionModal';
 
 const SessionHistory = ({ onViewReceipt }) => {
   const { sessions, deleteSession, permissions, t } = useApp();
+  const [correctionSession, setCorrectionSession] = useState(null);
   const endedSessions = sessions.filter(s => s.endTime);
   const canDelete = permissions?.manage_settings;
+  const canCorrect = permissions?.manage_settings;
 
   return (
     <div>
@@ -50,13 +54,13 @@ const SessionHistory = ({ onViewReceipt }) => {
                     <td className="px-4 py-2 text-xs dark:text-gray-400 text-gray-500">
                       {new Date(session.startTime).toLocaleTimeString()} - {new Date(session.endTime).toLocaleTimeString()}
                     </td>
-                    <td className="px-4 py-2 font-mono dark:text-gray-300">{formatDuration(session.durationMinutes)}</td>
+                    <td className="px-4 py-2 font-mono dark:text-gray-300">{formatDuration(session.elapsedTime ?? session.durationMinutes)}</td>
                     <td className="px-4 py-2">
-                      <div className="font-bold text-emerald-500">{formatMoney(session.totalCost)}</div>
+                      <div className="font-bold text-emerald-500">{formatMoney(session.finalTotal ?? session.totalCost)}</div>
                       {session.orders && session.orders.length > 0 && (
                         <div className="text-[10px] dark:text-gray-400 text-gray-500 mt-1 max-w-[200px] leading-tight">
                           <i className="fas fa-coffee text-amber-500/70"></i>{' '}
-                          ${session.ordersCost.toFixed(2)}: {formatOrderSummary(session.orders)}
+                          ${Number(session.ordersCost || 0).toFixed(2)}: {formatOrderSummary(session.orders)}
                         </div>
                       )}
                     </td>
@@ -78,6 +82,15 @@ const SessionHistory = ({ onViewReceipt }) => {
                             <i className="fas fa-trash-alt"></i>
                           </button>
                         )}
+                        {canCorrect && (
+                          <button
+                            onClick={() => setCorrectionSession(session)}
+                            className="text-amber-500 hover:text-amber-600 transition"
+                            title="Correct session"
+                          >
+                            <i className="fas fa-pen-to-square"></i>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -87,6 +100,10 @@ const SessionHistory = ({ onViewReceipt }) => {
           </table>
         </div>
       </div>
+      <SessionCorrectionModal
+        session={correctionSession}
+        onClose={() => setCorrectionSession(null)}
+      />
     </div>
   );
 };

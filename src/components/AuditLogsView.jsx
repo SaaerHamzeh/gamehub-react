@@ -1,9 +1,10 @@
 import { useApp } from '../context/AppContext';
+import { isOwnerUser } from '../utils/permissions';
 
 const AuditLogsView = () => {
   const { auditLogs, clearAuditLogs, currentUser } = useApp();
 
-  const isOwner = currentUser?.is_superuser || currentUser?.role === 'owner' || currentUser?.role === 'Owner';
+  const isOwner = isOwnerUser(currentUser);
 
   return (
     <div className="space-y-6">
